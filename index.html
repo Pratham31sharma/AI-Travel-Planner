@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Travel Planner — plan it, review it, approve it</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14213d;--paper:#eef2f5;--card:#fff;--teal:#0e7c7b;--gold:#e9a826;--rose:#b5334a;--line:#d3dce3;--mute:#5a6b7b}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.55 "Source Sans 3",system-ui,sans-serif}
+h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.15;margin:0}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px}
+section.blk{padding:44px 0 0}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:18px;list-style:none;padding:0}
+.steps li{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;font-size:.9rem;color:var(--mute)}
+.steps li b{display:block;color:var(--ink);font-size:1rem}
+.steps li.you{background:#fdf1d4;border-color:var(--gold)}
+@media(max-width:720px){.steps{grid-template-columns:1fr 1fr}}
+#plan{margin-top:-44px;position:relative}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:18px}
+label{display:block;font-weight:600;font-size:.92rem;margin-bottom:5px}
+input,select,textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+select:disabled{background:#f1f4f6;color:var(--mute)}
+input:focus,select:focus,textarea:focus,button:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(2,1fr)}.grid.five{grid-template-columns:repeat(5,1fr)}
+@media(max-width:640px){.grid{grid-template-columns:1fr}.grid.five{grid-template-columns:repeat(2,1fr)}}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;cursor:pointer;font:inherit;color:var(--ink)}
+.chip[aria-pressed=true]{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn{font:600 1rem "Source Sans 3",sans-serif;border:0;border-radius:10px;padding:12px 22px;cursor:pointer;background:var(--ink);color:#fff;text-decoration:none;display:inline-block}
+.btn.go{background:var(--teal)}.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}.btn.warn{background:var(--rose)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.hint{color:var(--mute);font-size:.88rem;margin:4px 0 0}
+details summary{cursor:pointer;font-weight:600}
+.hidden{display:none!important}
+.err{background:#fbe9ec;border:1px solid #e7b5bf;color:#7d1f33;padding:12px 16px;border-radius:10px;margin-bottom:18px}
+.warnbox{background:#fdf1d4;border:1px solid var(--gold);color:#6b4b00;padding:10px 14px;border-radius:10px;margin:12px 0 0;font-size:.92rem}
+.loading{padding:36px 24px}
+.stg{list-style:none;padding:0;margin:18px 0 0}
+.stg li{padding:8px 0 8px 30px;position:relative;color:var(--mute)}
+.stg li::before{content:"";position:absolute;left:4px;top:13px;width:14px;height:14px;border-radius:50%;border:2px solid var(--line)}
+.stg li.on{color:var(--ink);font-weight:600}.stg li.on::before{border-color:var(--teal);border-top-color:transparent;animation:sp 1s linear infinite}
+.stg li.ok::before{background:var(--teal);border-color:var(--teal)}
+@keyframes sp{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.stg li.on::before{animation:none}}
+.status{display:inline-block;padding:3px 12px;border-radius:999px;font-size:.85rem;font-weight:600;background:#fdf1d4;color:#7a5600}
+.status.done{background:#d7f0ee;color:#0a5755}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;color:var(--mute);margin-top:8px}
+.bar{display:flex;height:16px;border-radius:8px;overflow:hidden;margin:14px 0 10px}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px 16px;font-size:.92rem}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:7px}
+.day{margin-top:22px}.day h3{font-size:1.2rem}.day .th{color:var(--mute);font-size:.92rem;font-family:"Source Sans 3",sans-serif;font-weight:400}
+.wx{display:inline-block;margin-top:4px;font-size:.85rem;background:#e4f1f1;color:#0a5755;border-radius:6px;padding:2px 9px}
+.tl{list-style:none;margin:12px 0 0;padding:0 0 0 22px;border-left:2px solid var(--line)}
+.tl li{position:relative;padding:0 0 14px 14px}
+.tl li::before{content:"";position:absolute;left:-30px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--teal);border:2px solid #fff;box-shadow:0 0 0 2px var(--teal)}
+.tl .t{font-weight:600;color:var(--teal)}.tl .n{color:var(--mute);font-size:.93rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:640px){.two{grid-template-columns:1fr}}
+ul.plain{margin:8px 0 0;padding-left:20px}pre.notes{white-space:pre-wrap;font:inherit;margin:10px 0 0}
+.review{border:2px solid var(--gold)}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.hist{border-left:3px solid var(--gold);padding-left:12px;margin:8px 0}
+.rec{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.rec:first-of-type{border-top:0}
+footer{margin-top:56px;padding:26px 0;background:var(--ink);color:#b9c6d6;font-size:.9rem}footer a{color:#fff}
+@media print{nav,.hero,.review,.actions,.noprint,#how,#recent,#sample,footer{display:none!important}body{background:#fff}.card{border:0;padding:0}#plan{margin:0}}
+
+nav{position:sticky;top:0;z-index:5;background:rgba(14,22,45,.92);backdrop-filter:blur(10px);color:#fff;border-bottom:1px solid rgba(255,255,255,.08)}
+.nb{display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 clamp(16px,3vw,36px)}
+.brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font:800 1.2rem "Bricolage Grotesque",sans-serif}
+.brand i{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,#e9a826,#f6d16b 45%,#38c9bd);display:grid;place-items:center;box-shadow:0 4px 14px rgba(233,168,38,.35)}
+.brand em{font-style:normal;color:var(--gold)}
+.links a{color:#c9d5e3;text-decoration:none;margin:0 14px;font-size:.95rem}.links a:hover{color:#fff}
+@media(max-width:760px){.links{display:none}}
+.me{display:flex;align-items:center;gap:12px}
+.av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--teal),#1fb5a8);color:#fff;font:800 1.05rem "Bricolage Grotesque",sans-serif;display:grid;place-items:center;border:2px solid rgba(255,255,255,.25)}
+.lo{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:7px 16px;font:600 .9rem "Source Sans 3",sans-serif;cursor:pointer}.lo:hover{background:rgba(255,255,255,.1)}
+.hero{position:relative;overflow:hidden;color:#fff;padding:60px 0 104px;background:radial-gradient(900px 420px at 85% 10%,rgba(14,124,123,.55),transparent 60%),radial-gradient(700px 380px at 0% 100%,rgba(233,168,38,.18),transparent 60%),linear-gradient(160deg,#0f1b36,#14213d 55%,#0c3b4a)}
+.hg{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center}
+@media(max-width:860px){.hg{grid-template-columns:1fr}.pv{display:none}}
+.tag{display:inline-block;padding:5px 14px;border-radius:999px;background:rgba(233,168,38,.15);color:#f6d16b;border:1px solid rgba(233,168,38,.35);font-size:.85rem;font-weight:600}
+.hero h1{font-size:clamp(2.2rem,5.2vw,3.5rem);font-weight:800;margin:16px 0 0}
+.hero h1 span{background:linear-gradient(90deg,#f6d16b,#e9a826 40%,#38c9bd);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:#b9c6d6;font-size:1.1rem;max-width:46ch;margin:16px 0 26px}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+.btn.big{padding:14px 28px;font-size:1.05rem;box-shadow:0 8px 24px rgba(14,124,123,.45)}
+.btn.lite{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#fff;box-shadow:none}
+.pills{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:26px;color:#c9d5e3;font-size:.92rem}
+.pills span::before{content:"✓ ";color:#38c9bd;font-weight:700}
+.pv{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(8px);border-radius:20px;padding:20px;transform:rotate(2deg);box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.pv small{color:#f6d16b;font-weight:600;letter-spacing:.05em}
+.pv h3{font-size:1.25rem;margin:4px 0 12px}
+.pv ul{list-style:none;margin:0;padding:0 0 0 18px;border-left:2px solid rgba(255,255,255,.2)}
+.pv li{position:relative;padding:0 0 10px 12px;font-size:.93rem;color:#e6edf5}
+.pv li::before{content:"";position:absolute;left:-24px;top:7px;width:10px;height:10px;border-radius:50%;background:#38c9bd;box-shadow:0 0 0 3px rgba(56,201,189,.25)}
+.pv li b{color:#f6d16b;font-weight:600;margin-right:6px}
+.pv .mb{display:flex;height:10px;border-radius:6px;overflow:hidden;margin-top:6px}
+.pv .cap{font-size:.78rem;color:#9fb0c4;margin-top:10px}
+.card{box-shadow:0 6px 24px rgba(20,33,61,.06)}
+.btn.go{background:linear-gradient(135deg,#0e7c7b,#13a39a)}
+.perks{display:flex;flex-wrap:wrap;gap:6px 18px;margin:12px 0 2px;color:var(--mute);font-size:.92rem}
+.perks span::before{content:"✓ ";color:var(--teal);font-weight:700}
+.or{display:flex;align-items:center;gap:14px;color:var(--mute);font-size:.88rem;margin:26px 0 16px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+#g-btn{display:flex;justify-content:center;min-height:44px}
+#g-box{padding-bottom:4px}
+/* motion */
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes float{0%,100%{transform:rotate(2deg) translateY(0)}50%{transform:rotate(2deg) translateY(-10px)}}
+@keyframes slide{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
+@keyframes ping{0%{opacity:.55;transform:scale(1)}100%{opacity:0;transform:scale(3)}}
+.hero .tag,.hero h1,.hero p,.hero .cta,.hero .pills{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+.hero h1{animation-delay:.1s}.hero p{animation-delay:.2s}.hero .cta{animation-delay:.3s}.hero .pills{animation-delay:.4s}
+.pv{animation:fade .9s .3s ease both,float 6s ease-in-out 1.2s infinite}
+.rv{opacity:0;transform:translateY(22px);transition:opacity .6s ease var(--d,0s),transform .6s ease var(--d,0s),box-shadow .25s}
+.rv.in{opacity:1;transform:none}
+.steps li.rv.in:hover{transform:translateY(-4px);box-shadow:0 12px 26px rgba(20,33,61,.12)}
+#plan>div:not(.hidden):not(#err):not(#v-out){animation:fade .45s ease both}
+#v-out>*{animation:rise .6s cubic-bezier(.2,.7,.2,1) both}
+#v-out>*:nth-child(2){animation-delay:.08s}#v-out>*:nth-child(3){animation-delay:.16s}#v-out>*:nth-child(4){animation-delay:.24s}#v-out>*:nth-child(5){animation-delay:.32s}#v-out>*:nth-child(n+6){animation-delay:.4s}
+.btn{transition:transform .2s,box-shadow .2s,opacity .2s}
+.btn:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(20,33,61,.18)}
+.chip{transition:border-color .2s,background .2s,transform .2s}.chip:hover{border-color:var(--teal);transform:translateY(-1px)}
+.links a{transition:color .2s}
+/* loading scene */
+.scene{width:100%;max-width:420px;height:auto;display:block;margin:0 auto 6px}
+.scene .ring{transform-box:fill-box;transform-origin:center;animation:ping 2s ease-out infinite}
+.prog{height:6px;border-radius:4px;background:#e4eaee;overflow:hidden;margin:18px 0 6px}
+.prog i{display:block;height:100%;width:40%;border-radius:4px;background:linear-gradient(90deg,#0e7c7b,#e9a826);animation:slide 1.6s ease-in-out infinite}
+.tip{transition:opacity .25s;color:var(--mute);font-size:.92rem;margin:14px 0 0;min-height:1.5em}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}}
+/* picks, icons, share */
+.dch{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.dc{display:flex;flex-direction:column;align-items:flex-start;border-radius:14px;padding:8px 14px;line-height:1.25;text-align:left}
+.dc b{font-weight:600}.dc small{font-size:.74rem;opacity:.75}
+.ic{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#eaf5f4;margin-right:8px;font-size:.95rem;vertical-align:middle}
+.btn.wa{background:#25a755;color:#fff}
+.pdfdoc{position:fixed;left:-10000px;top:0;width:794px;background:#fff;padding:20px;color:var(--ink)}
+.pdfdoc .card{box-shadow:none;margin-bottom:14px}
+/* recent plans as cards */
+.pcs{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(max-width:640px){.pcs{grid-template-columns:1fr}}
+.pc{position:relative;display:flex;flex-direction:column;gap:3px;text-align:left;font:inherit;color:inherit;background:#fff;border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:14px;padding:16px 46px 16px 18px;cursor:pointer;box-shadow:0 6px 24px rgba(20,33,61,.05);transition:transform .2s,box-shadow .2s,border-color .2s;width:100%;height:100%}
+.pcw{position:relative;animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
+.pc:hover{transform:translateY(-3px);box-shadow:0 14px 28px rgba(20,33,61,.12);border-color:var(--teal)}
+.pc-city{font:800 1.12rem "Bricolage Grotesque",sans-serif;line-height:1.2}
+.pc-dates{color:var(--teal);font-weight:600;font-size:.93rem}
+.pc-meta{color:var(--mute);font-size:.82rem}
+.pc-go{position:absolute;right:16px;bottom:12px;color:var(--teal);font-size:1.3rem;transition:transform .2s}
+.pc:hover .pc-go{transform:translateX(4px)}
+.pc-top{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px}
+.bdg{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.74rem;font-weight:600;white-space:nowrap}
+.bdg-draft{background:#fdf1d4;color:#7a5600}.bdg-final{background:#d7f0ee;color:#0a5755}
+.pc-del{position:absolute;top:10px;right:10px;width:30px;height:30px;border:0;border-radius:8px;background:transparent;color:var(--mute);cursor:pointer;display:grid;place-items:center;font:600 .78rem "Source Sans 3",sans-serif;transition:background .2s,color .2s}
+.pc-del:hover{background:#fbe9ec;color:var(--rose)}
+.pc-del.arm{width:auto;padding:0 10px;background:var(--rose);color:#fff}
+#recmore{margin-top:14px}
+/* sample plan */
+.sbanner{background:#fdf1d4;border:1px solid var(--gold);border-radius:14px;padding:14px 18px;margin-bottom:18px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;color:#6b4b00}
+.sbanner span{flex:1 1 320px}
+#sample-body .card{animation:rise .6s cubic-bezier(.2,.7,.2,1) both}
+.lo.solid{background:linear-gradient(135deg,#0e7c7b,#13a39a);border-color:transparent;padding:8px 20px}
+.lo.solid:hover{background:linear-gradient(135deg,#0c6f6e,#118f87)}
+</style>
+</head>
+<body>
+<nav><div class="nb">
+  <a class="brand" href="#top"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14213d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></i><span><em>AI</em> Travel Planner</span></a>
+  <div class="links"><a href="#plan" id="lk-plan">Plan a trip</a><a href="#sample" id="lk-sample">Sample plan</a><a href="#how">How it works</a><a href="#recent" id="lk-recent" class="hidden">Recent plans</a></div>
+  <div class="me" id="guest"><button class="lo solid" id="nav-login">Log in</button></div>
+  <div class="me hidden" id="who"><span class="av" id="av" role="img"></span><button class="lo" id="lo">Log out</button></div>
+</div></nav>
+
+<div class="hero"><div class="wrap hg">
+  <div>
+    <span class="tag">✦ Planned by AI agents · Approved by you</span>
+    <h1>Your next getaway, <span>planned in minutes.</span></h1>
+    <p>Tell us where and when. Our agents research the place, check the weather for your dates and build a day-by-day plan with a budget in ₹. Nothing is final until you say yes.</p>
+    <div class="cta"><a class="btn go big" href="#plan">Plan my trip →</a><a class="btn lite big" href="#sample" id="hero-sample">See a sample plan</a></div>
+    <div class="pills"><span>Real forecast for your dates</span><span>Budget split in ₹</span><span>You approve every plan</span></div>
+  </div>
+  <aside class="pv" aria-hidden="true">
+    <small>SAMPLE PLAN</small><h3>Day 1 · Jaipur</h3>
+    <ul><li><b>8:00</b>Sunrise walk at Amber Fort</li><li><b>13:00</b>Lunch at a rooftop café</li><li><b>17:30</b>Golden hour at Hawa Mahal</li></ul>
+    <div class="mb"><div style="width:40%;background:#14213d"></div><div style="width:25%;background:#13a39a"></div><div style="width:20%;background:#e9a826"></div><div style="width:10%;background:#6c8ea4"></div><div style="width:5%;background:#c3ced6"></div></div>
+    <div class="cap">Sample preview. Your plan is built for your dates and budget.</div>
+  </aside>
+</div></div>
+
+<main class="wrap">
+  <section id="plan">
+    <div id="err" class="err hidden" role="alert"></div>
+
+    <div id="v-auth" class="card hidden">
+      <h2>Your trip starts here</h2>
+      <p class="hint" style="font-size:.98rem">Log in to plan a trip, and come back to review it anytime.</p>
+      <div id="pend" class="warnbox hidden" style="margin:12px 0 0"><span id="pendtxt"></span> <button type="button" class="btn ghost" id="pendback" style="padding:4px 12px;margin-left:8px">Edit my trip</button></div>
+      <div class="perks"><span>Plans saved to your account</span><span>Weather for every day of your trip</span><span>You approve every plan</span></div>
+      <div class="chips" id="tabs" style="margin:18px 0 16px"><button type="button" class="chip" id="tab-up" aria-pressed="true">Sign up</button><button type="button" class="chip" id="tab-in" aria-pressed="false">Log in</button></div>
+      <form id="af" novalidate>
+        <div id="nm-row" style="margin-bottom:12px"><label for="an">Your name</label><input id="an" autocomplete="name"></div>
+        <label for="ai">Email</label><input id="ai" type="email" autocomplete="username" placeholder="you@example.com">
+        <label for="ap" style="margin-top:12px">Password</label><input id="ap" type="password" autocomplete="new-password">
+        <p class="hint" id="pw-hint">At least 8 characters.</p>
+        <div class="actions"><button class="btn go" id="asub" type="submit">Create account</button></div>
+      </form>
+      <div id="g-box" class="hidden"><div class="or"><span>or continue with</span></div><div id="g-btn"></div></div>
+      <button type="button" class="btn ghost" id="authback" style="margin-top:18px">← Back to the trip form</button>
+    </div>
+
+    <div id="v-form" class="card hidden">
+      <h2>Where to next?</h2><p class="hint" style="margin:6px 0 18px">Fill in the basics. Your draft plan takes a minute or two.</p>
+      <form id="f" novalidate>
+        <div class="hint" style="margin:0 0 8px;font-weight:600">Need an idea? Pick one</div><div class="dch" id="dchips"></div>
+        <div class="grid">
+          <div><label for="dest">Destination</label><input id="dest" required placeholder="City, Country — e.g. Jaipur, India"><p class="hint">Add the country to catch typos. We check the city really exists there.</p></div>
+          <div><label for="trav">Travelers</label><input id="trav" type="number" min="1" value="2" required></div>
+          <div><label for="sd">Start date</label><input id="sd" type="date" required></div>
+          <div><label for="ed">End date</label><input id="ed" type="date" required><p class="hint">Daily weather is available about 16 days ahead. Later dates get seasonal advice instead.</p></div>
+          <div><label for="bmin">Budget minimum (₹, whole trip)</label><input id="bmin" type="number" min="1" value="30000" required></div>
+          <div><label for="bmax">Budget maximum (₹, whole trip)</label><input id="bmax" type="number" min="1" value="45000" required></div>
+        </div>
+        <div style="margin-top:18px"><label id="il">Interests</label><div class="chips" id="chips" aria-labelledby="il"></div>
+          <input id="other" style="margin-top:10px" placeholder="Anything else? Separate with commas"></div>
+        <details style="margin-top:18px"><summary>Set your own budget split (optional)</summary>
+          <p class="hint">Percentages are normalised, so they needn’t add up to 100. Empty boxes use the default for that category.</p>
+          <div class="grid five" style="margin-top:10px">
+            <div><label for="w-lodging">Lodging %</label><input id="w-lodging" type="number" min="0" max="100"></div>
+            <div><label for="w-food">Food %</label><input id="w-food" type="number" min="0" max="100"></div>
+            <div><label for="w-activities">Activities %</label><input id="w-activities" type="number" min="0" max="100"></div>
+            <div><label for="w-local_transport">Transport %</label><input id="w-local_transport" type="number" min="0" max="100"></div>
+            <div><label for="w-buffer">Buffer %</label><input id="w-buffer" type="number" min="0" max="100"></div>
+          </div></details>
+        <div class="actions"><button class="btn go" type="submit">Create draft plan</button></div>
+        <p class="hint" id="loginnote" style="margin:10px 0 0">Next step: a quick log-in, then your plan starts straight away. Your answers are kept.</p>
+      </form>
+    </div>
+
+    <div id="v-load" class="card loading hidden" aria-live="polite">
+      <svg class="scene" viewBox="0 0 400 120" aria-hidden="true">
+        <path id="rt" d="M30 95 C 120 5, 280 5, 370 85" fill="none" stroke="#c3ced6" stroke-width="2" stroke-dasharray="6 7"/>
+        <circle class="ring" cx="30" cy="95" r="7" fill="#0e7c7b"/><circle cx="30" cy="95" r="7" fill="#0e7c7b"/>
+        <circle class="ring" cx="370" cy="85" r="7" fill="#e9a826" style="animation-delay:1s"/><circle cx="370" cy="85" r="7" fill="#e9a826"/>
+        <g id="plane"><polygon points="-9,-7 11,0 -9,7 -5,0" fill="#14213d"/><animateMotion dur="4.5s" repeatCount="indefinite" rotate="auto"><mpath href="#rt"/></animateMotion></g>
+      </svg>
+      <h2 id="lt">Working on it</h2><p class="hint" id="ls"></p><ul class="stg" id="stg"></ul>
+      <div class="prog" aria-hidden="true"><i></i></div><p class="tip" id="tip"></p>
+    </div>
+
+    <div id="v-out" class="hidden"></div>
+  </section>
+
+  <section id="sample" class="blk">
+    <h2>See what you get</h2>
+    <p class="hint" style="font-size:.98rem;margin-top:6px">A full example plan: day-by-day timeline, budget split, weather and a packing list.</p>
+    <button class="btn go" id="sample-toggle" style="margin-top:14px" aria-expanded="false" aria-controls="sample-body">Show the sample plan</button>
+    <div id="sample-body" class="hidden" style="margin-top:18px"></div>
+  </section>
+
+  <section id="how" class="blk">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li><b>Validate</b>Dates, budget and destination are checked first.</li>
+      <li><b>Research</b>Web search and a weather forecast for your dates.</li>
+      <li><b>Itinerary</b>Day-by-day plan, budget split and packing list.</li>
+      <li class="you"><b>You review</b>The workflow pauses here until you decide.</li>
+      <li><b>Final plan</b>Approved plans can be printed or downloaded.</li>
+    </ol>
+  </section>
+
+  <section id="recent" class="blk hidden"><h2>Recent plans</h2><div id="reclist" style="margin-top:14px"></div></section>
+</main>
+<footer><div class="wrap">Built with FastAPI, LangGraph and Groq. <a href="/docs">API docs</a></div></footer>
+
+<script>
+const API = new URLSearchParams(location.search).get("api") || "";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const inr = n => "₹" + Math.round(Number(n) || 0).toLocaleString("en-IN");
+const COLORS = ["#14213d","#0e7c7b","#e9a826","#6c8ea4","#c3ced6"];
+const CATS = [["lodging","Lodging"],["food","Food"],["activities","Activities"],["local_transport","Transport"],["buffer","Buffer"]];
+const INTERESTS = ["Food","Culture","Heritage","Adventure","Nature","Shopping","Nightlife","Relaxation","Photography","Spiritual"];
+const store = { get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+let planId = null, ticker, token = store.get("token", null), gBtnOpts = null, pendingPlan = null;
+
+async function api(path, opts) {
+  const r = await fetch(API + path, { headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, ...opts });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    if (r.status === 401 && !path.startsWith("/auth/")) { signedOut(); view("auth"); throw new Error("Your session ended. Please log in again."); }
+    const d = j.detail;
+    throw new Error(typeof d === "string" ? d.replace(/^Invalid request:\s*/, "")
+      : Array.isArray(d) ? d.map(e => (e.loc || []).slice(-1)[0] + ": " + e.msg).join("; ") : "Request failed (" + r.status + ")");
+  }
+  return j;
+}
+let firstView = true;
+function view(name) { for (const id of ["auth","form","load","out"]) $("#v-" + id).classList.toggle("hidden", id !== name); if (name === "auth") renderGoogleBtn(); $("#loginnote").classList.toggle("hidden", !!token);
+  if (firstView) firstView = false; else $("#plan").scrollIntoView({ behavior: "smooth" }); }
+function showErr(m) { const e = $("#err"); e.textContent = m; e.classList.toggle("hidden", !m); }
+function loading(title, stages, note, auto) {
+  clearInterval(ticker); let i = 0;
+  $("#lt").textContent = title; $("#ls").textContent = note || "";
+  const draw = () => { $("#stg").innerHTML = stages.map((s, n) => `<li class="${n < i ? "ok" : n === i ? "on" : ""}">${esc(s)}</li>`).join(""); };
+  draw(); view("load");
+  ticker = setInterval(() => { if (i < stages.length - 1) { i++; draw(); } }, auto || 9000);
+  clearInterval(tipTimer); showTip(); tipTimer = setInterval(showTip, 7000);
+}
+const TIPS = ["Tip: keep a photo of your ID or passport separate from the original.", "Tip: download offline maps before you leave the hotel Wi-Fi.", "Tip: mornings are cooler and quieter at the popular sights.", "Tip: carry some cash for small shops and local transport.", "Tip: keep a small buffer in the budget. Plans always shift a little."];
+let tipTimer, tipI = 0;
+function showTip() { const t = $("#tip"); t.style.opacity = 0; setTimeout(() => { t.textContent = TIPS[tipI++ % TIPS.length]; t.style.opacity = 1; }, 250); }
+const stop = () => { clearInterval(ticker); clearInterval(tipTimer); };
+
+/* ---------- accounts ---------- */
+let mode = "up";
+function setMode(m) {
+  mode = m; $("#tab-up").setAttribute("aria-pressed", m === "up"); $("#tab-in").setAttribute("aria-pressed", m === "in");
+  $("#nm-row").classList.toggle("hidden", m !== "up"); $("#pw-hint").classList.toggle("hidden", m !== "up");
+  $("#asub").textContent = m === "up" ? "Create account" : "Log in"; $("#ap").autocomplete = m === "up" ? "new-password" : "current-password";
+}
+$("#tab-up").onclick = () => setMode("up"); $("#tab-in").onclick = () => setMode("in");
+function signedOut() { token = null; store.set("token", null); $("#who").classList.add("hidden"); $("#guest").classList.remove("hidden"); $("#recent").classList.add("hidden"); $("#lk-recent").classList.add("hidden"); }
+function enter(user) {
+  const av = $("#av"); av.textContent = ((user.name || user.email || "?").trim()[0] || "?").toUpperCase(); av.title = user.name || ""; av.setAttribute("aria-label", user.name || "Account"); $("#who").classList.remove("hidden"); $("#guest").classList.add("hidden"); $("#recent").classList.remove("hidden"); $("#lk-recent").classList.remove("hidden");
+  drawRecent(); showErr("");
+  const pend = takePending(); $("#pend").classList.add("hidden");
+  if (pend) { startPlan(pend); return; }           // the trip the visitor filled in before logging in
+  const hid = (location.hash.match(/plan=([\w-]+)/) || [])[1];
+  if (hid) { planId = hid; loadPlan().catch(e => { view("form"); showErr("Couldn’t open that plan: " + e.message); }); } else view("form");
+}
+$("#af").addEventListener("submit", async ev => {
+  ev.preventDefault(); showErr("");
+  const body = { email: $("#ai").value.trim(), password: $("#ap").value };
+  if (mode === "up") body.name = $("#an").value.trim();
+  if (!body.email || !body.password || (mode === "up" && !body.name)) return showErr("Fill in all the fields.");
+  try {
+    const r = await api(mode === "up" ? "/auth/signup" : "/auth/login", { method: "POST", body: JSON.stringify(body) });
+    token = r.token; store.set("token", token); $("#ap").value = ""; enter(r.user);
+  } catch (e) { showErr(e.message); }
+});
+$("#lo").onclick = async () => { try { await api("/auth/logout", { method: "POST" }); } catch {} signedOut(); clearPending(); $("#pend").classList.add("hidden"); planId = null; history.replaceState(null, "", location.pathname + location.search); setMode("in"); view("form"); };
+
+function renderGoogleBtn() { if (gBtnOpts && window.google) { const b = $("#g-btn"); b.innerHTML = ""; google.accounts.id.renderButton(b, gBtnOpts); } }
+async function initGoogle() {
+  let cfg = {}; try { cfg = await api("/auth/config"); } catch {}
+  if (cfg.password_signup === false) { $("#tabs").classList.add("hidden"); setMode("in"); }
+  const dev = ["localhost", "127.0.0.1"].includes(location.hostname);
+  const why = m => { if (dev) { const n = document.createElement("p"); n.className = "warnbox"; n.textContent = "Google button hidden: " + m; $("#g-box").after(n); } };
+  if (!cfg.google_client_id) return why(cfg.password_signup === undefined ? "the server did not answer /auth/config (is the new auth.py in place and the server restarted?)" : "GOOGLE_CLIENT_ID is empty. Add it to .env and restart the server.");
+  const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true;
+  s.onload = () => {
+    google.accounts.id.initialize({ client_id: cfg.google_client_id, callback: async r => {
+      showErr("");
+      try { const x = await api("/auth/google", { method: "POST", body: JSON.stringify({ credential: r.credential }) }); token = x.token; store.set("token", token); enter(x.user); }
+      catch (e) { showErr(e.message); } } });
+    gBtnOpts = { theme: "filled_blue", size: "large", shape: "pill", text: "continue_with", width: Math.min(360, window.innerWidth - 80) }; renderGoogleBtn();
+    $("#g-box").classList.remove("hidden");
+  };
+  s.onerror = () => why("could not load Google’s script (check your internet connection or ad-blocker).");
+  document.head.appendChild(s);
+}
+
+/* ---------- recent plans (saved on the server, per customer) ---------- */
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const COUNTRIES = new Set(["india","nepal","bhutan","thailand","indonesia","singapore","malaysia","vietnam","japan","france","italy","spain","germany","australia","uae"]);
+function prettyPlace(s) {                       // "banaras india" -> "Banaras, India"
+  let t = String(s || "").trim().replace(/\s+/g, " ");
+  if (!t.includes(",")) { const w = t.split(" "); if (w.length > 1 && COUNTRIES.has(w[w.length - 1].toLowerCase())) t = w.slice(0, -1).join(" ") + ", " + w[w.length - 1]; }
+  return t.split(" ").map(x => x.toLowerCase() === "uae" ? "UAE" : x === x.toLowerCase() ? x.charAt(0).toUpperCase() + x.slice(1) : x).join(" ");
+}
+function prettyDates(a, b) {                    // "27–29 Oct 2026 · 3 days"
+  const p = s => { const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? { y: +m[1], m: +m[2] - 1, d: +m[3] } : null; };
+  const s = p(a), e = p(b); if (!s || !e) return esc(a) + " → " + esc(b);
+  const n = Math.max(Math.round((Date.UTC(e.y, e.m, e.d) - Date.UTC(s.y, s.m, s.d)) / 864e5) + 1, 1);
+  const range = n === 1 ? `${s.d} ${MON[s.m]} ${s.y}` : (s.y === e.y && s.m === e.m) ? `${s.d}–${e.d} ${MON[e.m]} ${e.y}` : `${s.d} ${MON[s.m]}${s.y !== e.y ? " " + s.y : ""} – ${e.d} ${MON[e.m]} ${e.y}`;
+  return `${range} · ${n} day${n > 1 ? "s" : ""}`;
+}
+function ago(ts) {
+  if (!ts) return ""; const sec = Math.max(0, Date.now() / 1000 - Number(ts));
+  if (sec < 60) return "just now"; if (sec < 3600) return Math.floor(sec / 60) + " min ago";
+  if (sec < 86400) { const h = Math.floor(sec / 3600); return h + (h === 1 ? " hour ago" : " hours ago"); }
+  const d = Math.floor(sec / 86400); if (d === 1) return "yesterday"; if (d < 30) return d + " days ago";
+  const t = new Date(ts * 1000); return "on " + t.getDate() + " " + MON[t.getMonth()] + " " + t.getFullYear();
+}
+let showAllRecent = false, recentList = [];
+const RECENT_SHOWN = 6;
+const TRASH = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg>`;
+const BADGES = { finalized: ["bdg-final", "Final"], pending_review: ["bdg-draft", "Awaiting your approval"] };
+function paintRecent() {
+  const box = $("#reclist"), list = showAllRecent ? recentList : recentList.slice(0, RECENT_SHOWN);
+  if (!recentList.length) { box.innerHTML = `<div class="card"><p class="hint" style="margin:0">Plans you create appear here, so you can come back to review them.</p></div>`; return; }
+  box.innerHTML = `<div class="pcs">${list.map((x, i) => { const bd = BADGES[x.status]; return `<div class="pcw" style="animation-delay:${i * 0.05}s"><button class="pc" data-id="${esc(x.plan_id)}"><span class="pc-top"><span class="pc-city">${esc(prettyPlace(x.destination))}</span>${bd ? `<span class="bdg ${bd[0]}">${bd[1]}</span>` : ""}</span><span class="pc-dates">${prettyDates(x.start_date, x.end_date)}</span><span class="pc-meta">Created ${esc(ago(x.created_at))}</span><span class="pc-go" aria-hidden="true">→</span></button><button class="pc-del" data-del="${esc(x.plan_id)}" aria-label="Delete this plan" title="Delete this plan">${TRASH}</button></div>`; }).join("")}</div>`
+    + (recentList.length > RECENT_SHOWN ? `<button class="btn ghost" id="recmore">${showAllRecent ? "Show fewer" : "Show all " + recentList.length + " plans"}</button>` : "");
+  box.querySelectorAll("[data-id]").forEach(b => b.onclick = async () => { planId = b.dataset.id; showErr(""); try { await loadPlan(); } catch (e) { showErr(e.message); } });
+  box.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {        // first click asks "Delete?", second click deletes
+    if (!b.classList.contains("arm")) { b.classList.add("arm"); b.textContent = "Delete?"; setTimeout(() => { if (b.isConnected) { b.classList.remove("arm"); b.innerHTML = TRASH; } }, 3500); return; }
+    const id = b.dataset.del;
+    try { await api("/my/plans/" + id, { method: "DELETE" }); } catch (e) { showErr(e.message); return; }
+    recentList = recentList.filter(x => x.plan_id !== id); paintRecent();
+    if (planId === id) { planId = null; history.replaceState(null, "", location.pathname + location.search); showErr(""); view("form"); }
+  });
+  const more = $("#recmore"); if (more) more.onclick = () => { showAllRecent = !showAllRecent; paintRecent(); };
+}
+async function drawRecent() {
+  try { recentList = (await api("/my/plans")).plans || []; } catch { recentList = []; }
+  paintRecent();
+}
+
+/* ---------- form ---------- */
+INTERESTS.forEach(n => {
+  const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = n; b.setAttribute("aria-pressed", "false");
+  b.onclick = () => b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true"); $("#chips").appendChild(b);
+});
+const PICKS = [["Jaipur","Forts & palaces",["Heritage","Culture","Food"]],["Udaipur","City of lakes",["Relaxation","Heritage","Photography"]],["Manali","Mountains",["Adventure","Nature"]],["Rishikesh","Rafting & yoga",["Adventure","Spiritual","Nature"]],["Varanasi","Ghats & aarti",["Spiritual","Heritage","Food"]],["Shimla","Hill station",["Nature","Relaxation"]],["Mumbai","Food & nightlife",["Food","Nightlife","Culture"]],["Puducherry","French quarter",["Relaxation","Food","Culture"]]];
+const dchips = $("#dchips");
+function syncPicks() { dchips.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", b.dataset.c.toLowerCase() === $("#dest").value.trim().toLowerCase())); }
+PICKS.forEach(([city, tag, ints]) => {
+  const b = document.createElement("button"); b.type = "button"; b.className = "chip dc"; b.dataset.c = city + ", India"; b.setAttribute("aria-pressed", "false");
+  b.innerHTML = `<b>${esc(city)}</b><small>${esc(tag)}</small>`;
+  b.onclick = () => {
+    $("#dest").value = b.dataset.c; syncPicks();
+    // suggest interests only if the traveler has not chosen any yet
+    if (!document.querySelector("#chips [aria-pressed=true]") && !$("#other").value.trim())
+      document.querySelectorAll("#chips .chip").forEach(c => { if (ints.includes(c.textContent)) c.setAttribute("aria-pressed", "true"); });
+  };
+  dchips.appendChild(b);
+});
+$("#dest").addEventListener("input", syncPicks);
+const iso = d => d.toISOString().slice(0, 10);
+const d0 = new Date(); d0.setDate(d0.getDate() + 5); $("#sd").value = iso(d0); d0.setDate(d0.getDate() + 3); $("#ed").value = iso(d0);
+
+function checkForm(b) {
+  if (!b.destination) return "Enter a destination.";
+  if (!b.start_date || !b.end_date) return "Choose both dates.";
+  if (b.end_date < b.start_date) return "The end date is before the start date.";
+  if (!(b.budget_min > 0) || !(b.budget_max > 0)) return "Enter a budget above zero.";
+  if (b.budget_max < b.budget_min) return "The maximum budget is lower than the minimum.";
+  if (!(b.num_travelers >= 1)) return "At least one traveler is needed.";
+  const days = (new Date(b.end_date) - new Date(b.start_date)) / 864e5 + 1;
+  const pp = (b.budget_min + b.budget_max) / 2 / days / b.num_travelers;   // the planner works on the middle of the range
+  if (pp < 400) return `Your budget (${inr(b.budget_min)} to ${inr(b.budget_max)}) works out to only ${inr(pp)} per traveler per day at the middle of the range. The planner needs at least ₹400. Raise the budget, shorten the trip or reduce the travelers.`;
+  return "";
+}
+function readForm() {
+  const interests = [...document.querySelectorAll("#chips [aria-pressed=true]")].map(b => b.textContent).concat($("#other").value.split(",").map(s => s.trim()).filter(Boolean));
+  const w = {}; CATS.forEach(([k]) => { const v = $("#w-" + k).value; if (v !== "") w[k + "_pct"] = Number(v) / 100; });
+  return { destination: $("#dest").value.trim(), start_date: $("#sd").value, end_date: $("#ed").value,
+    budget_min: Number($("#bmin").value), budget_max: Number($("#bmax").value), num_travelers: Number($("#trav").value),
+    interests, budget_weights: Object.keys(w).length ? w : null };
+}
+/* the trip a visitor filled in BEFORE logging in is kept, and started right after the log-in */
+const PEND_KEY = "pending_plan";
+function savePending(b) { pendingPlan = b; try { sessionStorage.setItem(PEND_KEY, JSON.stringify(b)); } catch {} }
+function clearPending() { pendingPlan = null; try { sessionStorage.removeItem(PEND_KEY); } catch {} }
+function takePending() { let b = pendingPlan; if (!b) { try { b = JSON.parse(sessionStorage.getItem(PEND_KEY)); } catch { b = null; } } clearPending(); return b && b.destination ? b : null; }
+async function startPlan(body) {
+  loading("Building your draft", ["Validating your request", "Researching the destination and weather", "Writing the itinerary and budget", "Ready for your review"],
+    "This can take a minute or two. Please keep this page open.");
+  try {
+    const c = await api("/plan", { method: "POST", body: JSON.stringify(body) });
+    planId = c.plan_id;
+    store.set("req_" + planId, body);
+    await loadPlan();
+  } catch (e) { stop(); view("form"); showErr(e.message); }
+}
+$("#f").addEventListener("submit", ev => {
+  ev.preventDefault(); showErr("");
+  const body = readForm(), bad = checkForm(body); if (bad) return showErr(bad);
+  if (!token) {                                  // not logged in yet: keep the answers, ask for the log-in now
+    savePending(body);
+    $("#pendtxt").textContent = "Your trip to " + body.destination + " is ready to build. Log in and we will start straight away.";
+    openAuth(); return;
+  }
+  startPlan(body);
+});
+/* the login card can be opened on its own, from the "Log in" button in the top bar */
+function openAuth() { const waiting = !!pendingPlan; $("#pend").classList.toggle("hidden", !waiting); $("#authback").classList.toggle("hidden", waiting); view("auth"); }
+$("#nav-login").onclick = () => { showErr(""); setMode("in"); openAuth(); };
+$("#authback").onclick = () => { showErr(""); view("form"); };
+$("#pendback").onclick = () => { showErr(""); view("form"); };
+
+/* ---------- rendering ---------- */
+function parseWeather(txt) {
+  const m = {}; let any = false;
+  String(txt || "").split("\n").forEach(l => { const r = l.match(/^-\s*(\S+):\s*(-?[\d.]+)-(-?[\d.]+)°C,\s*(\d+)%/); if (r) { m[r[1]] = { lo: r[2], hi: r[3], rain: r[4] }; any = true; } });
+  return any ? m : null;
+}
+const ICONS = [
+  [/breakfast|lunch|dinner|thali|street food|caf[eé]|restaurant|dhaba|snack|chai|\bfood\b|cuisine|\beat\b/i, "🍽️"],
+  [/sunrise|sunset|golden hour/i, "🌅"],
+  [/temple|mandir|masjid|mosque|church|gurudwara|ashram|dargah|aarti|\bghat|monastery|spiritual|\bjain\b/i, "🛕"],
+  [/garba|\bshow\b|performance|dance|concert|music|nightlife|light-?show/i, "🎭"],
+  [/\bfort\b|palace|museum|heritage|haveli|monument|mahal|tomb|stepwell|gallery|ruins/i, "🏛️"],
+  [/hotel|check-?in|return to|\brest\b|relax|\bspa\b/i, "🏨"],
+  [/arrive|arrival|depart|airport|station|flight|\btrain\b|transfer|\bdrive\b/i, "🧳"],
+  [/market|bazaar|bazar|chowk|shopping|\bshop\b|handicraft/i, "🛍️"],
+  [/\blake\b|\bpark\b|garden|hike|trek|trail|\bbird|waterfall|beach|river|cycling|\bboat|\bzoo\b|nature|viewpoint|\bhill/i, "🌿"]];
+const actIcon = t => (ICONS.find(([re]) => re.test(String(t || ""))) || [0, "📍"])[1];
+const wxIcon = r => Number(r) >= 60 ? "🌧️" : Number(r) >= 30 ? "⛅" : "☀️";
+function loadPdfLib() {
+  if (window.html2pdf) return Promise.resolve();
+  return new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"; s.onload = ok; s.onerror = () => no(new Error("could not load the PDF tool (check your internet connection)")); document.head.appendChild(s); });
+}
+async function makePdf(d, p, req) {      // the COMPLETE plan: every day, weather, budget, packing list, tips
+  await loadPdfLib();
+  const host = document.createElement("div"); host.className = "pdfdoc";
+  host.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px"><b style="font:800 1.2rem 'Bricolage Grotesque',sans-serif">AI Travel Planner</b><span style="color:#5a6b7b;font-size:.85rem">${esc(new Date().toLocaleDateString("en-IN"))}</span></div>` + itineraryHTML(d, p, req);
+  document.body.appendChild(host);
+  try {
+    return await html2pdf().set({ margin: [8, 8, 8, 8], filename: "plan.pdf", image: { type: "jpeg", quality: 0.95 }, html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }, pagebreak: { mode: ["css", "legacy"], avoid: [".day", ".tl li"] } }).from(host).outputPdf("blob");
+  } finally { host.remove(); }
+}
+function budgetHTML(b, req) {
+  if (!b) return "";
+  const total = CATS.reduce((s, [k]) => s + (Number(b[k]) || 0), 0) || 1, wu = b.weights_used || {};
+  const bar = CATS.map(([k, l], i) => `<div title="${l}" style="width:${(Number(b[k]) || 0) / total * 100}%;background:${COLORS[i]}"></div>`).join("");
+  const leg = CATS.map(([k, l], i) => `<div><i style="background:${COLORS[i]}"></i>${l}: <b>${inr(b[k])}</b>${wu[k] != null ? ` <span class="hint">(${Math.round(wu[k] * 100)}%)</span>` : ""}</div>`).join("");
+  const src = b.weights_source === "human_supplied" ? "Split follows the percentages you set." : b.weights_source === "default_fallback" ? "Default split used, because you didn’t set one." : "";
+  let extra = "";
+  if (req) {
+    const days = (new Date(req.end_date) - new Date(req.start_date)) / 864e5 + 1;
+    extra = `<p class="hint">Your budget was ${inr(req.budget_min)} to ${inr(req.budget_max)}. That’s about ${inr(total / req.num_travelers)} per person and ${inr(total / days)} per day.</p>`;
+  }
+  return `<h3>Budget: ${inr(total)}</h3><div class="bar">${bar}</div><div class="legend">${leg}</div>${extra}<p class="hint">${src}</p>`;
+}
+function daysHTML(days, wx) {
+  return (days || []).map(d => { const w = wx && wx[d.date];
+    return `<div class="day"><h3>Day ${esc(d.day)} <span class="th">${esc(d.date)}${d.theme ? ": " + esc(d.theme) : ""}</span></h3>
+      ${w ? `<span class="wx">${wxIcon(w.rain)} ${esc(w.lo)}–${esc(w.hi)}°C · ${esc(w.rain)}% chance of rain</span>` : ""}
+      <ul class="tl">${(d.activities || []).map(a => `<li><span class="ic" aria-hidden="true">${actIcon(a.activity)}</span><span class="t">${esc(a.time)}</span> ${esc(a.activity)}${a.notes ? `<div class="n">${esc(a.notes)}</div>` : ""}</li>`).join("")}</ul></div>`; }).join("");
+}
+const listHTML = (t, a) => a && a.length ? `<div><h3>${t}</h3><ul class="plain">${a.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "";
+function itineraryHTML(d, p, req) {
+  if (!d) return "";
+  if (d.error) return `<div class="err"><b>The planner’s answer couldn’t be read.</b> Use “Send changes” below to have it try again.<pre class="notes">${esc(d.raw_output || "")}</pre></div>`;
+  const wx = parseWeather(p.weather_outlook), wxNote = !wx && p.weather_outlook ? p.weather_outlook.replace(/^\[|\]$/g, "") : "";
+  return `<div class="card"><h2>${esc(d.destination)}</h2>
+      <div class="meta"><span>${esc(d.dates && d.dates.start)} → ${esc(d.dates && d.dates.end)}</span><span>${esc(d.travelers)} traveler(s)</span></div>
+      ${d.weather_summary && !wx ? `<p><b>Weather:</b> ${esc(d.weather_summary)}</p>` : ""}
+      ${wxNote ? `<div class="warnbox">${esc(wxNote)}</div>` : ""}</div>
+    <div class="card">${budgetHTML(d.budget_allocation, req)}</div>
+    <div class="card"><h2>Itinerary</h2>${daysHTML(d.days, wx)}</div>
+    <div class="card two">${listHTML("Packing list", d.packing_list)}${listHTML("Tips", d.tips)}</div>`;
+}
+function render(p, finalPlan) {
+  const done = !!finalPlan, d = finalPlan || p.draft_itinerary, req = store.get("req_" + p.plan_id, null);
+  const hist = (p.feedback_history || []).map(h => `<div class="hist"><b>${esc(h.decision)}</b> (${esc(h.target)}): ${esc(h.feedback)}</div>`).join("");
+  let h = `<div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <span class="status ${done ? "done" : ""}">${done ? "Final plan" : "Draft: waiting for your review"}</span>
+    <button class="btn ghost noprint" id="newtrip">Plan another trip</button></div>` + itineraryHTML(d, p, req);
+  if (p.research_notes && !done) h += `<div class="card"><details><summary>Research notes behind this draft</summary><pre class="notes">${esc(p.research_notes)}</pre></details></div>`;
+  if (hist) h += `<div class="card"><h3>Your earlier feedback</h3>${hist}</div>`;
+  if (done) h += `<div class="actions noprint"><button class="btn wa" id="pdfshare">Share as PDF</button><button class="btn go" id="pdfdl">Download PDF</button></div><p class="hint noprint" id="pdfnote"></p>`;
+  else h += `<div class="card review"><h2>Your decision</h2>
+    <p class="hint">Approve to finalize, or describe what should change and the agents will redo it.</p>
+    <label for="fb" style="margin-top:12px">What should change?</label>
+    <textarea id="fb" rows="3" placeholder="e.g. Add one more food experience on day 2 and drop the museum"></textarea>
+    <div class="grid" style="margin-top:12px">
+      <div><label for="kind">Type of change</label><select id="kind"><option value="modify">Small tweak to this plan</option><option value="reject">Redo it</option></select></div>
+      <div><label for="tgt">Who redoes it</label><select id="tgt"><option value="itinerary">Itinerary planner</option><option value="research">Research agent, then a new itinerary</option></select>
+        <p class="hint" id="tg">Small tweaks are always handled by the itinerary planner.</p></div></div>
+    <div class="actions"><button class="btn go" id="approve" ${d && d.error ? "disabled" : ""}>Approve plan</button><button class="btn warn" id="revise">Send changes</button></div></div>`;
+  $("#v-out").innerHTML = h; view("out"); location.hash = "plan=" + p.plan_id;
+  $("#newtrip").onclick = () => { planId = null; history.replaceState(null, "", location.pathname + location.search); showErr(""); view("form"); };
+  if (done) {
+    let pdfFile = null;
+    const pdfName = (d.destination || "trip").replace(/\W+/g, "_") + "_plan.pdf";
+    const getPdf = async () => pdfFile || (pdfFile = new File([await makePdf(d, p, req)], pdfName, { type: "application/pdf" }));
+    const save = f => { const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+    const busy = async (btn, label, fn) => { const old = btn.textContent; btn.disabled = true; btn.textContent = label; try { await fn(); } catch (e) { showErr("Couldn’t make the PDF: " + (e.message || e)); } btn.disabled = false; btn.textContent = old; };
+    $("#pdfdl").onclick = () => busy($("#pdfdl"), "Preparing PDF…", async () => { save(await getPdf()); });
+    $("#pdfshare").onclick = () => busy($("#pdfshare"), "Preparing PDF…", async () => {
+      const had = !!pdfFile, f = await getPdf();
+      if (navigator.canShare && navigator.canShare({ files: [f] })) {
+        try { await navigator.share({ files: [f], title: d.destination + " trip plan", text: "Trip plan for " + d.destination }); }
+        catch (e) { if (e.name === "AbortError") return; if (!had && e.name === "NotAllowedError") { $("#pdfnote").textContent = "The PDF is ready. Tap “Share as PDF” once more to send it."; return; } throw e; }
+      } else { save(f); $("#pdfnote").textContent = "This browser can’t attach files to WhatsApp directly, so the PDF was saved. Open WhatsApp and attach it with the paperclip, then Document."; }
+    });
+  } else {
+    const sync = () => { const m = $("#kind").value === "modify"; $("#tgt").disabled = m; if (m) $("#tgt").value = "itinerary"; $("#tg").classList.toggle("hidden", !m); };
+    $("#kind").onchange = sync; sync();
+    $("#approve").onclick = () => review({ decision: "approve" });
+    $("#revise").onclick = () => { const feedback = $("#fb").value.trim(); if (!feedback) return showErr("Describe what should change first."); review({ decision: $("#kind").value, feedback, target: $("#tgt").value }); };
+  }
+}
+async function loadPlan() {
+  const p = await api("/plan/" + planId); stop(); showErr(""); drawRecent();
+  if (p.status === "finalized") render(p, (await api("/plan/" + planId + "/final")).final_plan); else render(p, null);
+}
+async function review(body) {
+  showErr("");
+  const redo = body.decision !== "approve";
+  loading(redo ? "Applying your changes" : "Finalizing your plan", redo ? [body.target === "research" ? "Re-running research" : "Revising the itinerary", "Ready for your review"] : ["Saving your approval", "Final plan ready"], "", 12000);
+  try { await api("/plan/" + planId + "/review", { method: "POST", body: JSON.stringify(body) }); stop(); await loadPlan(); }
+  catch (e) { stop(); try { await loadPlan(); } catch { view("form"); } showErr(e.message); }
+}
+
+/* ---------- sample plan, shown before log-in ---------- */
+function sampleData() {
+  const day = n => { const t = new Date(); t.setDate(t.getDate() + 14 + n); return iso(t); };
+  const a0 = day(0), a1 = day(1), a2 = day(2);
+  const plan = { destination: "Jaipur, India", dates: { start: a0, end: a2 }, travelers: 2, weather_summary: "",
+    budget_allocation: { lodging: 13125, food: 9375, activities: 7500, local_transport: 3750, buffer: 3750, weights_used: { lodging: .35, food: .25, activities: .2, local_transport: .1, buffer: .1 }, weights_source: "default_fallback" },
+    days: [
+      { day: 1, date: a0, theme: "Forts and the old city", activities: [
+        { time: "09:00", activity: "Visit Amber Fort", notes: "Go early to beat the crowds and the heat." },
+        { time: "13:00", activity: "Lunch at a local thali restaurant", notes: "Try dal baati churma." },
+        { time: "16:30", activity: "City Palace and Jantar Mantar", notes: "They are close together. Allow about two hours." },
+        { time: "19:00", activity: "Evening walk at Johari Bazaar", notes: "Good for jewellery, textiles and street snacks." }] },
+      { day: 2, date: a1, theme: "Heritage and food", activities: [
+        { time: "08:30", activity: "Breakfast of kachori at a local sweet shop", notes: "A Jaipur morning favourite." },
+        { time: "10:00", activity: "Hawa Mahal and the streets around it", notes: "The morning light is best for photos." },
+        { time: "13:00", activity: "Lunch at a rooftop café with a fort view", notes: "Book a table if you want the best view." },
+        { time: "16:30", activity: "Sunset at Nahargarh Fort", notes: "Take a cab and keep a light jacket for the breeze." },
+        { time: "20:00", activity: "Dinner of laal maas or a vegetarian thali", notes: "Ask for the spice level you like." }] },
+      { day: 3, date: a2, theme: "A slow morning and shopping", activities: [
+        { time: "09:30", activity: "Visit Albert Hall Museum", notes: "Check the opening hours before you go." },
+        { time: "12:00", activity: "Shopping at Bapu Bazaar for mojris and blue pottery", notes: "Bargain politely." },
+        { time: "15:00", activity: "Rest, pack and check out", notes: "Keep a buffer for the journey home." }] }],
+    packing_list: ["Light cotton clothes", "Comfortable walking shoes", "Sunscreen and a hat", "A light jacket for the evenings", "Power bank and a water bottle"],
+    tips: ["Start the forts early, afternoons are hot.", "Carry some cash for small shops and autos.", "Dress modestly at temples and palaces."] };
+  const weather = `Weather outlook for Jaipur:\n- ${a0}: 19.0-31.0°C, 5% chance of rain\n- ${a1}: 18.5-30.5°C, 10% chance of rain\n- ${a2}: 19.5-31.5°C, 35% chance of rain`;
+  return { plan, weather, req: { budget_min: 30000, budget_max: 45000, num_travelers: 2, start_date: a0, end_date: a2 } };
+}
+function renderSample() {
+  const { plan, weather, req } = sampleData();
+  $("#sample-body").innerHTML = `<div class="sbanner"><span><b>Sample plan.</b> A made-up example so you can see the layout. The numbers are for illustration. Your plan is built for your own dates, budget and interests, with a real weather forecast.</span><a class="btn go" href="#plan">Plan my own trip →</a></div>` + itineraryHTML(plan, { weather_outlook: weather }, req);
+}
+function toggleSample(open) {
+  const body = $("#sample-body"), btn = $("#sample-toggle"), show = open === undefined ? body.classList.contains("hidden") : open;
+  if (show && !body.innerHTML) renderSample();
+  body.classList.toggle("hidden", !show); btn.textContent = show ? "Hide the sample plan" : "Show the sample plan"; btn.setAttribute("aria-expanded", String(show));
+}
+$("#sample-toggle").onclick = () => toggleSample();
+$("#hero-sample").addEventListener("click", () => toggleSample(true));
+$("#lk-sample").addEventListener("click", () => toggleSample(true));
+
+const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+if (calm) { const pl = $("#plane"); pl.querySelector("animateMotion").remove(); pl.setAttribute("transform", "translate(200 35)"); }
+const io = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); setTimeout(() => e.target.style.removeProperty("--d"), 1000); } }), { threshold: .15 }) : null;
+document.querySelectorAll(".steps li").forEach((el, i) => { el.classList.add("rv"); el.style.setProperty("--d", (i * 0.09) + "s"); if (io) io.observe(el); else el.classList.add("in"); });
+if (token) $("#guest").classList.add("hidden");
+setMode("up"); initGoogle();
+(async () => {
+  if (token) { try { enter((await api("/auth/me")).user); return; } catch { signedOut(); } }
+  view("form");
+})();
+</script>
+</body>
+</html>

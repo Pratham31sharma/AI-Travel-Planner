@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]==0.30.6
+langgraph
+langgraph-checkpoint-sqlite
+langchain-core
+langchain-groq
+pydantic
+python-dotenv
+requests
